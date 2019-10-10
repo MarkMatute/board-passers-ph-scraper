@@ -8,6 +8,26 @@ class StringHelper {
         return text.replace(/[0-9]/g, '').trimLeft();
     }
 
+    public static removeMonthAndYear = (text: string) => {
+        return text
+            .toLowerCase()
+            .replace(/january/g, '')
+            .replace(/february/g, '')
+            .replace(/march/g, '')
+            .replace(/april/g, '')
+            .replace(/may/g, '')
+            .replace(/june/g, '')
+            .replace(/july/g, '')
+            .replace(/august/g, '')
+            .replace(/september/g, '')
+            .replace(/october/g, '')
+            .replace(/november/g, '')
+            .replace(/december/g, '')
+            .replace(/[0-9]/g, '')
+            .replace(/-/g, '')
+            .trimLeft();
+    }
+
 }
 
 export default StringHelper;

@@ -1,9 +1,10 @@
-import Architecute2019 from './architecture/2019';
 import ExamScraper from './exams/ExamScraper';
+import JsonWriter from './common/JsonWriter';
 
 (async () => {
-    
-    // const archi2019 = await Architecute2019.scrape();
-    const examScraper = await ExamScraper.scrape();
-    console.log(examScraper);
+
+    // Exams
+    const examsResults = await ExamScraper.scrape();
+    JsonWriter.writeJson(examsResults, 'exams');
+
 })();

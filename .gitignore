@@ -39,6 +39,8 @@ Thumbs.db
 # Ignore built ts files
 dist/**/*
 
+outputs/*.json
+
 Close
 
 .data
