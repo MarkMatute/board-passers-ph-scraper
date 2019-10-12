@@ -2,6 +2,7 @@ import IScraper from '../interfaces/IScraper';
 import axios from 'axios';
 import cheerio from 'cheerio';
 import StringHelper from '../common/StringHelpers';
+import JsonWriter from '../common/JsonWriter';
 
 class PhilippinePassersScraper implements IScraper {
 
@@ -18,31 +19,20 @@ class PhilippinePassersScraper implements IScraper {
 
     const years = this.getSourcesPerYear();
     const exams = await this.getExamsPerYear(years);
-    const passers = await this.getPassersForExam(exams);
-
-    return passers;
+    await this.getPassersForExam(exams);
   }
 
   private getSourcesPerYear = () => {
     const years: number[] = [];
-    for (let year=2000; year <= 2019; year++) {
+    for (let year = 2000; year <= 2019; year++) {
       years.push(year)
     }
     return years;
   }
 
   private getExamsPerYear = async (years: number[]) => {
-    // TODO: This is temporary
-    return [
-      {
-        exam: 'pharma licensure examination',
-        href: 'https://www.philippinepassers.com/of/march-2019-pharmacist-licensure-examination/1071/a',
-        year: 2019
-      }
-    ];
     const exams: any[] = [];
     for (let year of years) {
-      console.log(`Getting exams for year: ${year}`);
       const result = await axios.get(`${this.urlSource}/${year}`);
       const $ = cheerio.load(result.data);
       const examContainer: Cheerio = $('#page .container:nth-child(2) .row a');
@@ -58,37 +48,76 @@ class PhilippinePassersScraper implements IScraper {
   }
 
   private getPassersForExam = async (exams: any) => {
-    const passers: any[] = [];
+    const failedExams: any[] = [];
 
     // Loop Exam Links
     for (let exam of exams) {
+      console.log('Getting ' + exam.exam + ' ' + exam.year);
 
-      const result = await axios.get(exam.href);
-      const $ = cheerio.load(result.data);
-      const letterPaginations = $('.pagination').first().find('a');
+      let passers: any[] = [];
 
-      // Letter Pagination Links
-      const letterPaginationLinks: string[] = [];
-      letterPaginations.map((index: number, element: CheerioElement) => {
-        letterPaginationLinks.push(`${this.urlSource.replace('/examination/results', '') + element.attribs['href']}`);
-      });
+      try {
+        const result = await axios.get(exam.href);
+        const $ = cheerio.load(result.data);
+        const letterPaginations = $('.pagination').first().find('a');
 
-      // Loop Pagination Per Letters
-      for (const letter of letterPaginationLinks) {
-        const letterRequestResult = await axios.get(exam.href);
-        const $_letterHtml = cheerio.load(result.data);
+        // Letter Pagination Links
+        const letterPaginationLinks: string[] = [];
+        letterPaginations.map((index: number, element: CheerioElement) => {
+          letterPaginationLinks.push(`${this.urlSource.replace('/examination/results', '') + element.attribs['href']}`);
+        });
 
-        // Get Pagination Per Letters
-        // TODO: Where are the actual passers
+        // Loop Pagination Per Letters
+        for (const letterLink of letterPaginationLinks) {
+          const letterRequestResult = await axios.get(letterLink);
+          const $_letterHtml = cheerio.load(letterRequestResult.data);
+          const pageLinks = $_letterHtml('.pagination').last().find('li');
+          const finalLinksToCrawl = [letterLink];
 
+          // Multiple Pages Per Letter
+          if (pageLinks.length != 26) {
+            const aTags = pageLinks.find('a');
+            aTags.map(async (index, element) => {
+              if (index != (aTags.length - 1)) {
+                finalLinksToCrawl.push(element.attribs['href']);
+              }
+            });
+          }
+
+          // Loop Now Final Urls
+          for (const finalLink of finalLinksToCrawl) {
+            const result = await this.extractPassers(finalLink);
+            passers = [
+              ...passers,
+              ...result
+            ]
+          }
+        }
+
+        // Write JSON per exam
+        await JsonWriter.writeJson({
+          ...exam,
+          passers
+        }, StringHelper.spaceToUnderscore(exam.exam + ' ' + exam.year))
+      } catch (error) {
+        failedExams.push(exam);
       }
     }
 
-    return passers;
+    // Write Failed Exams
+    await JsonWriter.writeJson(failedExams, 'failedExams');
   }
 
-  private getLetterPaginations = () => {
-
+  private extractPassers = async (link: string) => {
+    const passers: any[] = [];
+    const result = await axios.get(link);
+    const $ = cheerio.load(result.data);
+    const container = $('.card-outline-primary');
+    const rows = container.find('span');
+    rows.each((index, element) => {
+      passers.push(element.children[0].data);
+    });
+    return passers;
   }
 
 }

@@ -28,6 +28,10 @@ class StringHelper {
             .trimLeft();
     }
 
+    public static spaceToUnderscore = (text: string) => {
+        return text.toLowerCase().replace(' ', '_');
+    }
+
 }
 
 export default StringHelper;
