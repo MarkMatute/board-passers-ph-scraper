@@ -42,7 +42,7 @@ class Feeder {
   }
 
   /**
-   * 
+   *
    */
   private readJsonFile = async (file: string): Promise<any> => {
     return  new Promise((resolve, reject) => {
@@ -71,24 +71,32 @@ class Feeder {
    * Build Passers Payload
    */
   private buildPassersPayload = (jsonData: any, exam: any) => {
-    const { id } = exam;
-    const { passers, year } = jsonData;
-    const massagedPassers: any[] = [];
-    for (const passer of passers) {
-      massagedPassers.push({
-        "firstName": "NA",
-        "middleName": "NA",
-        "lastName": "NA",
-        "year": year,
-        "month": 0,
-        "fullName": passer,
-        "school": "",
-        "exam": id
-      });
+    try {
+      const { id } = exam;
+      const { passers, year } = jsonData;
+      const massagedPassers: any[] = [];
+      for (const passer of passers) {
+        massagedPassers.push({
+          "firstName": "NA",
+          "middleName": "NA",
+          "lastName": "NA",
+          "year": year,
+          "month": 0,
+          "fullName": passer,
+          "school": "",
+          "exam": id
+        });
+      }
+      return {
+        passers: massagedPassers
+      };
+    } catch (error) {
+      console.log('ERROR > JsonData', jsonData);
+      console.log('ERROR > Exam', exam);
+      return {
+        passers: []
+      };
     }
-    return {
-      passers: massagedPassers
-    };
   }
 
   /**
