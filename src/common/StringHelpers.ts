@@ -28,8 +28,8 @@ class StringHelper {
             .trimLeft();
     }
 
-    public static spaceToUnderscore = (text: string) => {
-        return text.toLowerCase().replace(' ', '_');
+    public static specialCharToUnderscore = (text: string) => {
+        return text.toLowerCase().replace(/[^A-Z0-9]+/ig, "_");
     }
 
 }

@@ -14,35 +14,46 @@ class PhilippinePassersScraper implements IScraper {
   }
 
   public scrape = async () => {
-    const result = await axios.get(this.urlSource);
-    this.$ = cheerio.load(result.data);
+    try {
+      const result = await axios.get(this.urlSource);
+      this.$ = cheerio.load(result.data);
 
-    const years = this.getSourcesPerYear();
-    const exams = await this.getExamsPerYear(years);
-    await this.getPassersForExam(exams);
+      const years = this.getSourcesPerYear();
+      const exams = await this.getExamsPerYear(years);
+      await this.getPassersForExam(exams);
+    } catch (error) {
+      console.log('Error > Scrape', error);
+    }
   }
 
   private getSourcesPerYear = () => {
     const years: number[] = [];
-    for (let year = 2000; year <= 2019; year++) {
+    const CRAWL_YEAR_START = +process.env.CRAWL_YEAR_START;
+    const CRAWL_YEAR_END = +process.env.CRAWL_YEAR_END;
+    for (let year = CRAWL_YEAR_START; year <= CRAWL_YEAR_END; year++) {
       years.push(year)
     }
+    console.log('Years:', years);
     return years;
   }
 
   private getExamsPerYear = async (years: number[]) => {
     const exams: any[] = [];
     for (let year of years) {
-      const result = await axios.get(`${this.urlSource}/${year}`);
-      const $ = cheerio.load(result.data);
-      const examContainer: Cheerio = $('#page .container:nth-child(2) .row a');
-      examContainer.map((index: number, element: CheerioElement) => {
-        exams.push({
-          exam: StringHelper.removeMonthAndYear(element.children[0].data),
-          href: this.urlSource.replace('/examination/results', '') + element.attribs['href'],
-          year
+      try {
+        const result = await axios.get(`${this.urlSource}/${year}`);
+        const $ = cheerio.load(result.data);
+        const examContainer: Cheerio = $('#page .container:nth-child(2) .row a');
+        examContainer.map((index: number, element: CheerioElement) => {
+          exams.push({
+            exam: StringHelper.removeMonthAndYear(element.children[0].data),
+            href: this.urlSource.replace('/examination/results', '') + element.attribs['href'],
+            year
+          });
         });
-      });
+      } catch (error) {
+        console.log('Error > getExamsPerYear', error);
+      }
     }
     return exams;
   }
@@ -98,7 +109,8 @@ class PhilippinePassersScraper implements IScraper {
         await JsonWriter.writeJson({
           ...exam,
           passers
-        }, StringHelper.spaceToUnderscore(exam.exam + ' ' + exam.year))
+        }, StringHelper.specialCharToUnderscore(exam.href));
+
       } catch (error) {
         failedExams.push(exam);
       }
