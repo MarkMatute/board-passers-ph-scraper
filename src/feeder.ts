@@ -32,7 +32,7 @@ class Feeder {
    */
   private getJsonFiles = async (): Promise<string[]> => {
     return new Promise((resolve, reject) => {
-      fs.readdir('./outputs', (err, files) => {
+      fs.readdir('./outputs', (err: any, files: any) => {
         if (err) {
           reject(err);
         }
@@ -46,7 +46,7 @@ class Feeder {
    */
   private readJsonFile = async (file: string): Promise<any> => {
     return  new Promise((resolve, reject) => {
-      fs.readFile(`./outputs/${file}`, (err, data) => {
+      fs.readFile(`./outputs/${file}`, (err: any, data: any) => {
         if (err) reject(err);
         try {
           let parsedData = JSON.parse(data.toString());
