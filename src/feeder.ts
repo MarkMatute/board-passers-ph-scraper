@@ -1,6 +1,7 @@
 import fs from 'fs';
 import dotenv from 'dotenv';
 import axios from 'axios';
+import * as _ from 'lodash';
 
 class Feeder {
 
@@ -21,7 +22,9 @@ class Feeder {
       if (!output.isFailed) {
         const exam = await this.saveExam(output.exam);
         const passers = this.buildPassersPayload(output, exam.data.data);
-        await this.savePassers(passers);
+        for (const passerChunk of passers) {
+          await this.savePassers(passerChunk);
+        }
       }
     }
     console.log('Feed done.');
@@ -75,27 +78,34 @@ class Feeder {
       const { id } = exam;
       const { passers, year } = jsonData;
       const massagedPassers: any[] = [];
-      for (const passer of passers) {
+      const chunkedPassers = _.chunk(passers, 500);
+      for (const chunk of chunkedPassers) {
+        const tempPassers: any[] = [];
+        for (const passer of chunk) {
+          tempPassers.push({
+            "firstName": "NA",
+            "middleName": "NA",
+            "lastName": "NA",
+            "year": year,
+            "month": 0,
+            "fullName": passer,
+            "school": "",
+            "exam": id
+          });
+        }
         massagedPassers.push({
-          "firstName": "NA",
-          "middleName": "NA",
-          "lastName": "NA",
-          "year": year,
-          "month": 0,
-          "fullName": passer,
-          "school": "",
-          "exam": id
+          passers: tempPassers
         });
       }
-      return {
-        passers: massagedPassers
-      };
+      return massagedPassers;
     } catch (error) {
       console.log('ERROR > JsonData', jsonData);
       console.log('ERROR > Exam', exam);
-      return {
-        passers: []
-      };
+      return [
+        {
+          passers: []
+        }
+      ];
     }
   }
 
